@@ -43,16 +43,30 @@ def calculate_max_pain(df):
     return strikes[min_loss_index]
 
 def get_deribit_option_data(currency='BTC'):
-    """Obtiene datos de opciones de Deribit"""
+    """Obtiene datos de opciones de Deribit con manejo de errores mejorado"""
     url = f"https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency={currency}&kind=option"
     
     try:
-        response = requests.get(url, timeout=10)
+        headers = {
+            'User-Agent': 'TradingRoad/1.0 (contact@tradingroad.app)',
+            'Accept': 'application/json'
+        }
+        response = requests.get(url, timeout=15, headers=headers)
         response.raise_for_status()
-        data = response.json()['result']
+        result = response.json()
+        
+        if 'result' not in result:
+            print(f"Warning: No 'result' key in Deribit response for {currency}")
+            return pd.DataFrame()
+            
+        data = result['result']
+        if not data:
+            print(f"Warning: Empty data from Deribit for {currency}")
+            return pd.DataFrame()
         
         df = pd.DataFrame(data)
-        if df.empty: 
+        if df.empty:
+            print(f"Warning: Empty DataFrame after processing Deribit data for {currency}")
             return df
         
         # Procesar datos griegos

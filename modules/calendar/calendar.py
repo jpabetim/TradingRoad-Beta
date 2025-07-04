@@ -1,10 +1,14 @@
 import pandas as pd
+import requests
+import os
 from datetime import datetime, timedelta
-import investpy
 
 class CalendarService:
     def __init__(self):
-        pass
+        self.fmp_api_key = os.getenv('FMP_API_KEY')
+        self.base_url = 'https://financialmodelingprep.com/api/v3'
+        if not self.fmp_api_key:
+            print("Warning: FMP_API_KEY not found in environment variables")
     
     def get_economic_calendar(self, start_date=None, end_date=None, countries=None):
         """
