@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<!-- Sección de Cards/Iconos de las Secciones -->
+<div class="dashboard-grid">
+    <div class="dashboard-card">
+        <h2>Análisis Técnico</h2>
+        <p>Accede a nuestras herramientas de análisis técnico para tomar decisiones informadas.</p>
+        <a href="/analysis" class="primary-btn">Ver Análisis</a>
+    </div>
+    
+    <div class="dashboard-card">
+        <h2>Trading</h2>
+        <p>Plataforma de trading en desarrollo. Próximamente disponible.</p>
+        <a href="/trading" class="primary-btn">Ver Detalles</a>
+    </div>
+    
+    <div class="dashboard-card">
+        <h2>Vencimientos</h2>
+        <p>Analiza los vencimientos de derivados y su impacto en el mercado.</p>
+        <a href="/volatility" class="primary-btn">Ver Vencimientos</a>
+    </div>
+    
+    <div class="dashboard-card">
+        <h2>Noticias Financieras</h2>
+        <p>Mantente informado con las últimas noticias del mercado financiero.</p>
+        <a href="/news" class="primary-btn">Ver Noticias</a>
+    </div>
+    
+    <div class="dashboard-card">
+        <h2>Calendario Económico</h2>
+        <p>No te pierdas los eventos económicos más importantes.</p>
+        <a href="/calendar" class="primary-btn">Ver Calendario</a>
+    </div>
+    
+    <div class="dashboard-card">
+        <h2>Configuración</h2>
+        <p>Personaliza la plataforma según tus necesidades y preferencias.</p>
+        <a href="/config" class="primary-btn">Ver Configuración</a>
+    </div>
+</div>
+
+<!-- Resumen del Mercado -->
+<div class="market-summary">
+    <h2>Resumen del Mercado</h2>
+    <div id="market-data-loading">
+        <div class="loading-spinner"></div>
+        <p>Cargando datos del mercado en tiempo real...</p>
+    </div>
+    <div id="market-data" style="display: none;" class="market-grid">
+        <div class="market-card">
+            <h3>BTC/USDT</h3>
+            <div class="price" id="btc-price">-</div>
+            <div id="btc-change" class="change">-</div>
+        </div>
+        <div class="market-card">
+            <h3>ETH/USDT</h3>
+            <div class="price" id="eth-price">-</div>
+            <div id="eth-change" class="change">-</div>
+        </div>
+        <div class="market-card">
+            <h3>SOL/USDT</h3>
+            <div class="price" id="sol-price">-</div>
+            <div id="sol-change" class="change">-</div>
+        </div>
+        <div class="market-card">
+            <h3>SPY (S&P 500)</h3>
+            <div class="price" id="spy-price">-</div>
+            <div id="spy-change" class="change">-</div>
+        </div>
+    </div>
+</div>
+
+<!-- Noticias Principales -->
+<div class="news-section">
+    <h2>Noticias Principales</h2>
+    <div class="news-grid" id="news-container">
+        <!-- Loading placeholder -->
+        <div class="news-loading">
+            <div class="loading-spinner"></div>
+            <p>Cargando noticias financieras...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cargar noticias reales inmediatamente
+(function() {
+    console.log('Script de noticias ejecutándose...');
+    
+    function loadRealNews() {
+        console.log('Cargando noticias reales...');
+        const container = document.getElementById('news-container');
+        
+        if (!container) {
+            console.error('No se encontró el contenedor de noticias');
+            return;
+        }
+        
+        // Mostrar loading usando el gestor global
+        if (window.loadingManager) {
+            window.loadingManager.showForSection('.news-section', 'Cargando noticias financieras...');
+        }
+        
+        fetch('/api/news?limit=6')
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                if (data.success && data.data && data.data.length > 0) {
+                    renderNews(data.data, container);
+                } else {
+                    renderError('No se pudieron cargar las noticias', container);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                renderError('Error de conexión', container);
+            })
+            .finally(() => {
+                // Ocultar loading
+                if (window.loadingManager) {
+                    window.loadingManager.hideForSection('.news-section');
+                }
+            });
+    }
+    
+    function renderNews(newsArray, container) {
+        console.log('Renderizando', newsArray.length, 'noticias');
+        container.innerHTML = '';
+        
+        newsArray.forEach(item => {
+            const newsDiv = document.createElement('div');
+            newsDiv.className = 'news-item';
+            
+            newsDiv.innerHTML = `
+                <h3>${escapeHtml(item.title)}</h3>
+                <p>${escapeHtml(item.description)}</p>
+                <span class="news-source">${escapeHtml(item.source)} - ${escapeHtml(item.time)}</span>
+            `;
+            
+            if (item.url && item.url !== '#') {
+                newsDiv.style.cursor = 'pointer';
+                newsDiv.addEventListener('click', () => {
+                    window.open(item.url, '_blank');
+                });
+            }
+            
+            container.appendChild(newsDiv);
+        });
+    }
+    
+    function renderError(message, container) {
+        container.innerHTML = `
+            <div class="news-error">
+                <h3>⚠️ Error al cargar noticias</h3>
+                <p>${message}</p>
+                <button onclick="location.reload()" style="
+                    background: rgba(142, 79, 255, 0.8);
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    margin-top: 15px;
+                ">Reintentar</button>
+            </div>
+        `;
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Cargar noticias y datos del mercado cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRealNews();
+            loadRealMarketData();
+        });
+    } else {
+        loadRealNews();
+        loadRealMarketData();
+    }
+})();
+
+// Función para cargar datos reales del mercado
+function loadRealMarketData() {
+    console.log('Cargando datos reales del mercado...');
+    
+    // Mostrar loading usando el gestor global
+    if (window.loadingManager) {
+        window.loadingManager.showForSection('.market-summary', 'Cargando datos del mercado...');
+    }
+    
+    fetch('/api/market/summary')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Datos del mercado recibidos:', data);
+            
+            if (data.status === 'success' || data.status === 'fallback') {
+                updateMarketDisplay(data.data, data.source);
+            } else {
+                console.error('Error en respuesta del mercado:', data);
+                showMarketError('Error al cargar datos del mercado');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching market data:', error);
+            showMarketError('Error de conexión al cargar el mercado');
+        })
+        .finally(() => {
+            // Ocultar loading
+            if (window.loadingManager) {
+                window.loadingManager.hideForSection('.market-summary');
+            }
+        });
+}
+
+function updateMarketDisplay(marketData, source) {
+    const loadingDiv = document.getElementById('market-data-loading');
+    const marketDiv = document.getElementById('market-data');
+    
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    if (marketDiv) marketDiv.style.display = 'grid';
+    
+    // Actualizar cada símbolo
+    Object.keys(marketData).forEach(symbol => {
+        const data = marketData[symbol];
+        const priceElement = document.getElementById(`${symbol.toLowerCase()}-price`);
+        const changeElement = document.getElementById(`${symbol.toLowerCase()}-change`);
+        
+        if (priceElement && changeElement) {
+            // Formatear precio según el símbolo
+            let formattedPrice;
+            if (symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('SOL')) {
+                formattedPrice = `$${parseFloat(data.price).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}`;
+            } else {
+                formattedPrice = `$${parseFloat(data.price).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}`;
+            }
+            
+            priceElement.textContent = formattedPrice;
+            
+            // Formatear cambio porcentual
+            const change = parseFloat(data.change_24h);
+            const changeText = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+            changeElement.textContent = changeText;
+            
+            // Aplicar clase CSS según el cambio
+            changeElement.className = `change ${change >= 0 ? 'positive' : 'negative'}`;
+        }
+    });
+    
+    // Mostrar indicador de fuente de datos
+    if (source === 'fallback') {
+        console.log('Usando datos de respaldo - APIs no disponibles');
+    } else {
+        console.log('Datos del mercado cargados desde APIs en vivo');
+    }
+}
+
+function showMarketError(message) {
+    const loadingDiv = document.getElementById('market-data-loading');
+    if (loadingDiv) {
+        loadingDiv.innerHTML = `
+            <div style="color: #ff6b6b; text-align: center;">
+                <p>⚠️ ${message}</p>
+                <button onclick="loadRealMarketData()" style="
+                    background: rgba(142, 79, 255, 0.8);
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    margin-top: 10px;
+                ">Reintentar</button>
+            </div>
+        `;
+    }
+}
+
+// Cargar datos del mercado al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    loadRealMarketData();
+});
+</script>
+
+{% endblock %}
